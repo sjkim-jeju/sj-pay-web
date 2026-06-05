@@ -1,13 +1,26 @@
 const AI_SERVER_URL = 'https://sj-pay.onrender.com/api/analyze'; 
 let transactions = JSON.parse(localStorage.getItem('cat_transactions')) || [];
+let currentTab = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const dateInput = document.getElementById('dateInput');
-    dateInput.value = new Date().toISOString().split('T')[0];
-    
+    document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     renderDashboard();
 
-    // 🌟 플로팅 버튼(메뉴) 애니메이션 제어 🌟
+    // 탭 클릭 필터링
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const summaryTitle = document.getElementById('summaryTitle');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            currentTab = e.currentTarget.getAttribute('data-tab');
+            tabBtns.forEach(b => b.className = "tab-btn px-4 py-2 rounded-full text-gray-500 hover:bg-rose-50 transition");
+            e.currentTarget.className = "tab-btn px-4 py-2 rounded-full bg-rose-100 text-rose-700 font-bold transition";
+            summaryTitle.textContent = `${e.currentTarget.textContent} 현황 🐾`;
+            renderDashboard();
+        });
+    });
+
+    // 플로팅 버튼 제어
     const mainFabBtn = document.getElementById('mainFabBtn');
     const fabMenu = document.getElementById('fabMenu');
     const fabIcon = document.getElementById('fabIcon');
@@ -17,24 +30,19 @@ document.addEventListener('DOMContentLoaded', () => {
         isFabOpen = !isFabOpen;
         if (isFabOpen) {
             fabMenu.classList.remove('hidden');
-            // 애니메이션을 위해 약간의 딜레이
-            setTimeout(() => {
-                fabMenu.classList.remove('scale-0', 'opacity-0');
-            }, 10);
-            fabIcon.style.transform = 'rotate(45deg)'; // X 모양으로 회전
+            setTimeout(() => fabMenu.classList.remove('scale-0', 'opacity-0'), 10);
+            fabIcon.style.transform = 'rotate(45deg)';
         } else {
             fabMenu.classList.add('scale-0', 'opacity-0');
-            setTimeout(() => {
-                fabMenu.classList.add('hidden');
-            }, 300);
-            fabIcon.style.transform = 'rotate(0deg)'; // 다시 + 모양으로
+            setTimeout(() => fabMenu.classList.add('hidden'), 300);
+            fabIcon.style.transform = 'rotate(0deg)';
         }
     }
     mainFabBtn.addEventListener('click', toggleFab);
 
-    // 🌟 1. 수동 입력 버튼 (모달창 열기) 🌟
+    // 수동 추가 모달 열기
     document.getElementById('manualAddBtn').addEventListener('click', () => {
-        toggleFab(); // 메뉴 닫기
+        toggleFab(); 
         document.getElementById('transactionModal').classList.remove('hidden');
         document.getElementById('transactionModal').style.display = 'flex';
     });
@@ -44,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => document.getElementById('transactionModal').style.display = '', 200);
     });
 
-    // 🌟 2 & 3. AI 사진/문자 처리 (모달 띄우지 않고 냅다 일괄 저장!) 🌟
+    // 🌟 AI 기능 🌟
     const receiptImageInput = document.getElementById('receiptImage');
     const pasteTextBtn = document.getElementById('pasteTextBtn');
     const aiLoading = document.getElementById('aiLoading');
@@ -52,34 +60,39 @@ document.addEventListener('DOMContentLoaded', () => {
     receiptImageInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        toggleFab(); // 메뉴 닫기
+        
+        // 💡 내가 선택한 결제수단 가져오기!
+        const selectedAiCard = document.getElementById('aiCardSelect').value; 
+        
+        toggleFab(); 
         const formData = new FormData();
         formData.append('receipt', file);
-        await processAIRequest(formData);
+        await processAIRequest(formData, selectedAiCard); // 덮어씌울 카드값 넘겨줌!
         e.target.value = ''; 
     });
 
     pasteTextBtn.addEventListener('click', async () => {
-        toggleFab(); // 메뉴 닫기
+        const selectedAiCard = document.getElementById('aiCardSelect').value; 
+        toggleFab(); 
         try {
             const text = await navigator.clipboard.readText();
             if (!text) throw new Error('클립보드빔');
             const formData = new FormData();
             formData.append('text', text);
-            await processAIRequest(formData);
+            await processAIRequest(formData, selectedAiCard);
         } catch (err) {
-            const manualText = prompt("카드결제 문자를 여기에 붙여넣어라 냥!");
+            const manualText = prompt("카드결제 문자를 붙여넣어라 냥!");
             if (manualText) {
                 const formData = new FormData();
                 formData.append('text', manualText);
-                await processAIRequest(formData);
+                await processAIRequest(formData, selectedAiCard);
             }
         }
     });
 
-    // 🌟 AI 일괄 저장 마법의 로직 🌟
-    async function processAIRequest(formData) {
-        aiLoading.classList.remove('hidden'); // 화면 전체 투명 로딩 띄우기!
+    // 🌟 AI 일괄 저장 + 결제수단 강제 덮어쓰기 로직 🌟
+    async function processAIRequest(formData, forcedCard) {
+        aiLoading.classList.remove('hidden'); 
         aiLoading.style.display = 'flex';
 
         try {
@@ -88,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (result.success && result.data) {
-                // 배열이든 아니든 무조건 배열로 묶어서 처리
                 const items = Array.isArray(result.data) ? result.data : [result.data];
                 let addedCount = 0;
                 
@@ -98,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                             type: data.type || 'expense',
                             date: data.date || new Date().toISOString().split('T')[0],
-                            card: data.card || 'check',
+                            card: forcedCard, // 💡 AI가 뭐라고 했든 무조건 내가 선택한 카드로 저장!!!
                             amount: Number(data.amount),
                             desc: data.desc
                         };
@@ -109,8 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 localStorage.setItem('cat_transactions', JSON.stringify(transactions)); 
                 renderDashboard();
-                
-                alert(`🐾 뾰로롱! 한 번에 ${addedCount}건의 내역이 자동 저장됐다냥!`);
+                alert(`🐾 뾰로롱! [${forcedCard}] 카드로 ${addedCount}건 자동 저장됐다냥!`);
             }
         } catch (error) {
             alert('먼길이가 분석하다 츄르먹고 도망갔어옹... 😿');
@@ -139,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('transactionModal').classList.add('hidden');
         document.getElementById('transactionForm').reset();
-        dateInput.value = new Date().toISOString().split('T')[0];
+        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     });
 
     document.getElementById('refreshBtn').addEventListener('click', () => {
@@ -151,13 +162,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// 화면 그리기
+// 화면 그리기 (필터링 적용)
 function renderDashboard() {
     let inTotal = 0, outTotal = 0;
     const listEl = document.getElementById('transactionList');
     listEl.innerHTML = '';
 
-    if (transactions.length === 0) {
+    const filteredTransactions = transactions.filter(t => {
+        if (currentTab === 'all') return true;
+        return t.card === currentTab;
+    });
+
+    if (filteredTransactions.length === 0) {
         listEl.innerHTML = `
             <div class="text-center py-16 opacity-80 mt-10">
                 <div class="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg">
@@ -168,8 +184,9 @@ function renderDashboard() {
             </div>
         `;
     } else {
-        const cardMap = { 'check':'체크카드', 'credit':'신용카드', 'tamna':'탐나는전', 'cash':'현금' };
-        transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+        const cardMap = { 'check':'체크카드', 'credit':'신용카드', 'tamna':'탐나는전', 'cash':'현금', 'other':'기타' };
+        
+        filteredTransactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
             if(t.type === 'income') inTotal += t.amount; else outTotal += t.amount;
             const isInc = t.type === 'income';
             const color = isInc ? 'text-blue-500' : 'text-rose-600';
