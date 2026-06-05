@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>승재의 고양이 가계부 🐾</title>
+    <title>승재의 가계부 🐾</title>
+    <!-- 🍎 아이폰 홈 화면에 추가할 때 사용할 어플 아이콘 (먼지 얼굴) -->
+    <link rel="apple-touch-icon" href="https://i.ibb.co/q3sPSCvs/1.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f43f5e">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +20,9 @@
     <!-- 상단 헤더 -->
     <header class="bg-rose-500 text-white p-4 shadow-md flex justify-between items-center z-10 sticky top-0 rounded-b-xl pt-[env(safe-area-inset-top)]">
         <div class="flex items-center space-x-2">
-            <h1 class="text-xl font-bold tracking-tight">승재의 가계부 <i class="fa-solid fa-cat ml-1 text-rose-200"></i></h1>
+            <!-- 🐱 프로필 사진 (먼지 얼굴) -->
+            <img src="https://i.ibb.co/q3sPSCvs/1.png" alt="Profile" class="w-10 h-10 rounded-full border-2 border-rose-300 bg-white object-cover">
+            <h1 class="text-xl font-bold tracking-tight">승재의 가계부</h1>
         </div>
         <button id="refreshBtn" class="p-2 bg-rose-400 rounded-full hover:bg-rose-300 transition">
             <i class="fa-solid fa-trash-can"></i> 전체초기화
@@ -55,8 +61,14 @@
 
     <!-- 내역 추가 모달창 -->
     <div id="transactionModal" class="fixed inset-0 bg-rose-900 bg-opacity-40 backdrop-blur-sm z-50 hidden flex-col justify-end">
-        <div class="bg-white w-full rounded-t-[32px] shadow-2xl p-6 border-t-4 border-rose-400 relative max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-5">
+        <div class="bg-white w-full rounded-t-[32px] shadow-2xl p-6 border-t-4 border-rose-400 relative max-h-[90vh] overflow-y-auto mt-20">
+            
+            <!-- 🐱 모달창 위 튀어나온 사진 (쳐다보는 먼길이) -->
+            <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 bg-white rounded-full border-4 border-rose-400 overflow-hidden shadow-lg z-50">
+                <img src="https://i.ibb.co/1fDDZHKT/4.jpg" alt="Peeking Cat" class="w-full h-full object-cover">
+            </div>
+
+            <div class="flex justify-between items-center mb-5 mt-6">
                 <h3 class="text-xl font-bold text-gray-800">새 내역 츄르가기 🐾</h3>
                 <button id="closeModalBtn" class="text-gray-400 p-2 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -67,16 +79,18 @@
                     <span class="text-sm font-bold text-rose-600 mb-2 block"><i class="fa-solid fa-wand-magic-sparkles"></i> AI 자동 입력냥!</span>
                     <div class="flex space-x-2">
                         <label class="flex-1 bg-white border-2 border-rose-200 text-rose-500 py-3 rounded-xl font-bold cursor-pointer text-center text-xs shadow-sm flex flex-col items-center">
-                            <i class="fa-solid fa-camera text-xl mb-1"></i> 영수증 사진
+                            <i class="fa-solid fa-camera text-xl mb-1"></i> 영수증 찰칵!
                             <input type="file" id="receiptImage" accept="image/*" class="hidden">
                         </label>
                         <button type="button" id="pasteTextBtn" class="flex-1 bg-white border-2 border-rose-200 text-rose-500 py-3 rounded-xl font-bold text-center text-xs shadow-sm flex flex-col items-center">
-                            <i class="fa-solid fa-comment-sms text-xl mb-1"></i> 문자/텍스트
+                            <i class="fa-solid fa-comment-sms text-xl mb-1"></i> 문자 복붙!
                         </button>
                     </div>
-                    <div id="aiLoading" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-10 rounded-2xl">
-                        <i class="fa-solid fa-cat fa-bounce text-3xl text-rose-500 mb-2"></i>
-                        <span class="text-sm font-bold text-rose-500">영수증 읽는 중... 🐾</span>
+                    
+                    <!-- 🐱 로딩 화면 (빙글빙글 뛰는 누끼 먼길이) -->
+                    <div id="aiLoading" class="hidden absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10 rounded-2xl">
+                        <img src="https://i.ibb.co/VpcCQRK6/123.png" alt="Loading" class="w-16 h-16 object-contain animate-bounce mb-2 drop-shadow-md">
+                        <span class="text-sm font-bold text-rose-500">영수증 읽는 중이다 냥... 🐾</span>
                     </div>
                 </div>
 
@@ -86,15 +100,15 @@
                     <label class="flex-1 text-center py-2 cursor-pointer font-bold"><input type="radio" name="type" value="income" class="mr-1">들어온 돈 😻</label>
                 </div>
 
-                <input type="date" id="dateInput" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none">
-                <select id="cardInput" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none appearance-none">
+                <input type="date" id="dateInput" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-medium">
+                <select id="cardInput" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none appearance-none font-medium">
                     <option value="check">💜 체크카드</option>
                     <option value="credit">💖 신용카드</option>
                     <option value="tamna">🍊 탐나는전</option>
                     <option value="cash">💵 현금</option>
                 </select>
-                <input type="number" id="amountInput" placeholder="얼마냥? (숫자만)" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-bold">
-                <input type="text" id="descInput" placeholder="어디다 썼냥?" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none">
+                <input type="number" id="amountInput" placeholder="얼마냥? (숫자만)" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-bold text-lg">
+                <input type="text" id="descInput" placeholder="어디다 썼냥?" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-medium">
                 
                 <button type="submit" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-md mt-2">저장할게옹 🐾</button>
             </form>
