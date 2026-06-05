@@ -1,7 +1,6 @@
 // Render API 서버 주소 
 const AI_SERVER_URL = 'https://sj-pay.onrender.com/api/analyze'; 
 
-// 폰 브라우저(로컬스토리지)에서 기존 데이터 불러오기. 모르는 사람이 접속하면 빈 배열([]) 처리됨.
 let transactions = JSON.parse(localStorage.getItem('cat_transactions')) || [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -10,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     renderDashboard();
 
-    // 모달 제어
     document.getElementById('addBtn').addEventListener('click', () => {
         document.getElementById('transactionModal').classList.remove('hidden');
         document.getElementById('transactionModal').style.display = 'flex';
@@ -20,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => document.getElementById('transactionModal').style.display = '', 200);
     });
 
-    // 전체 초기화 (로컬 데이터 삭제)
     document.getElementById('refreshBtn').addEventListener('click', () => {
         if(confirm('진짜 데이터를 싹 다 지울거냥? 🙀 (복구 불가)')) {
             localStorage.removeItem('cat_transactions');
@@ -29,9 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ==========================================
-    // 🌟 AI 영수증/문자 자동 입력 로직 🌟
-    // ==========================================
+    // AI 영수증/문자 로직
     const receiptImageInput = document.getElementById('receiptImage');
     const pasteTextBtn = document.getElementById('pasteTextBtn');
     const aiLoading = document.getElementById('aiLoading');
@@ -79,13 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('🐾 뾰로롱! 내용 채웠다냥! 확인하고 저장 눌러!');
             }
         } catch (error) {
-            alert('먼길이가 영수증 읽다가 실패했어옹... 😿');
+            alert('먼길이가 영수증 읽다가 실패했어옹... 😿 직접 써줘!');
         } finally {
             aiLoading.classList.add('hidden');
         }
     }
 
-    // 데이터 수동 저장 (폰에 저장하기)
+    // 폼 저장
     document.getElementById('transactionForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const type = document.querySelector('input[name="type"]:checked').value;
@@ -99,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         transactions.push(newRecord);
-        localStorage.setItem('cat_transactions', JSON.stringify(transactions)); // 내 폰에 저장!
+        localStorage.setItem('cat_transactions', JSON.stringify(transactions)); 
         
         renderDashboard();
         
@@ -109,55 +104,66 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// 화면에 리스트와 합계 그리기
+// 화면 그리기
 function renderDashboard() {
     let inTotal = 0, outTotal = 0;
     const listEl = document.getElementById('transactionList');
     listEl.innerHTML = '';
 
-    const cardMap = { 'check':'체크카드', 'credit':'신용카드', 'tamna':'탐나는전', 'cash':'현금' };
-
-    // 최신 날짜순 정렬
-    transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-        if(t.type === 'income') inTotal += t.amount; else outTotal += t.amount;
-        
-        const isInc = t.type === 'income';
-        const color = isInc ? 'text-blue-500' : 'text-rose-600';
-        const prefix = isInc ? '+' : '-';
-        const icon = isInc ? 'fa-fish text-blue-500 bg-blue-50' : 'fa-paw text-rose-500 bg-rose-50';
-        
-        const itemHtml = `
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 flex items-center justify-between mb-3 relative">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${icon}">
-                        <i class="fa-solid text-lg"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-gray-800 text-lg">${t.desc}</h4>
-                        <div class="flex items-center text-xs text-gray-500 mt-1">
-                            <span>${t.date}</span><span class="mx-1">•</span><span>${cardMap[t.card] || t.card}</span>
-                        </div>
-                    </div>
+    // 🐱 데이터 없을 때 빈 화면 (자는 먼지 사진 적용!)
+    if (transactions.length === 0) {
+        listEl.innerHTML = `
+            <div class="text-center py-16 opacity-80 mt-10">
+                <div class="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                    <img src="https://i.ibb.co/LzyS3L15/3.jpg" alt="Sleepy Cat" class="w-full h-full object-cover">
                 </div>
-                <div class="text-right">
-                    <div class="font-black ${color} text-lg tracking-tight">${prefix}${t.amount.toLocaleString()}원</div>
-                    <button onclick="deleteTx('${t.id}')" class="text-xs text-gray-400 mt-1 px-2 py-1 hover:text-rose-500 bg-gray-50 rounded">삭제</button>
-                </div>
+                <p class="text-gray-600 font-bold text-lg mb-1">아직 내역이 없냐옹!</p>
+                <p class="text-sm text-gray-400">오른쪽 아래 버튼 눌러서 추가해봐 🐾</p>
             </div>
         `;
-        listEl.insertAdjacentHTML('beforeend', itemHtml);
-    });
+    } else {
+        const cardMap = { 'check':'체크카드', 'credit':'신용카드', 'tamna':'탐나는전', 'cash':'현금' };
+
+        transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+            if(t.type === 'income') inTotal += t.amount; else outTotal += t.amount;
+            
+            const isInc = t.type === 'income';
+            const color = isInc ? 'text-blue-500' : 'text-rose-600';
+            const prefix = isInc ? '+' : '-';
+            const icon = isInc ? 'fa-fish text-blue-500 bg-blue-50' : 'fa-paw text-rose-500 bg-rose-50';
+            
+            const itemHtml = `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${icon}">
+                            <i class="fa-solid text-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-lg">${t.desc}</h4>
+                            <div class="flex items-center text-xs text-gray-500 mt-1">
+                                <span>${t.date}</span><span class="mx-1">•</span><span>${cardMap[t.card] || t.card}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-black ${color} text-lg tracking-tight">${prefix}${t.amount.toLocaleString()}원</div>
+                        <button onclick="deleteTx('${t.id}')" class="text-xs text-gray-400 mt-1 px-2 py-1 hover:text-rose-500 bg-gray-50 rounded font-bold">삭제</button>
+                    </div>
+                </div>
+            `;
+            listEl.insertAdjacentHTML('beforeend', itemHtml);
+        });
+    }
 
     document.getElementById('totalIncome').textContent = inTotal.toLocaleString() + '원';
     document.getElementById('totalExpense').textContent = outTotal.toLocaleString() + '원';
     document.getElementById('totalBalance').textContent = (inTotal - outTotal).toLocaleString() + '원';
 }
 
-// 개별 삭제 함수 (전역)
 window.deleteTx = function(id) {
     if(confirm('지울거냥? 😿')) {
         transactions = transactions.filter(t => t.id !== id);
-        localStorage.setItem('cat_transactions', JSON.stringify(transactions)); // 지우고 다시 저장
+        localStorage.setItem('cat_transactions', JSON.stringify(transactions)); 
         renderDashboard();
     }
 }
