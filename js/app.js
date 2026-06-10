@@ -1,15 +1,17 @@
 const AI_SERVER_URL = 'https://sj-pay.onrender.com/api/analyze'; 
-let transactions = JSON.parse(localStorage.getItem('cat_transactions')) || [];
+const API_URL = 'https://sj-pay.onrender.com/api/transactions';
+let transactions = [];
 let currentTab = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
-    renderDashboard();
+    
+    // 🌟 서버(DB)에서 내역 싹 다 불러오기! 🌟
+    fetchTransactions();
 
     // 탭 클릭 필터링
     const tabBtns = document.querySelectorAll('.tab-btn');
     const summaryTitle = document.getElementById('summaryTitle');
-    
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             currentTab = e.currentTarget.getAttribute('data-tab');
@@ -52,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => document.getElementById('transactionModal').style.display = '', 200);
     });
 
-    // 🌟 AI 기능 🌟
+    // AI 기능 (사진/문자)
     const receiptImageInput = document.getElementById('receiptImage');
     const pasteTextBtn = document.getElementById('pasteTextBtn');
     const aiLoading = document.getElementById('aiLoading');
@@ -60,14 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
     receiptImageInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
-        // 💡 내가 선택한 결제수단 가져오기!
         const selectedAiCard = document.getElementById('aiCardSelect').value; 
-        
         toggleFab(); 
         const formData = new FormData();
         formData.append('receipt', file);
-        await processAIRequest(formData, selectedAiCard); // 덮어씌울 카드값 넘겨줌!
+        formData.append('card', selectedAiCard); // 선택한 카드값 서버로 전송
+        await processAIRequest(formData, selectedAiCard);
         e.target.value = ''; 
     });
 
@@ -79,18 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!text) throw new Error('클립보드빔');
             const formData = new FormData();
             formData.append('text', text);
+            formData.append('card', selectedAiCard);
             await processAIRequest(formData, selectedAiCard);
         } catch (err) {
             const manualText = prompt("카드결제 문자를 붙여넣어라 냥!");
             if (manualText) {
                 const formData = new FormData();
                 formData.append('text', manualText);
+                formData.append('card', selectedAiCard);
                 await processAIRequest(formData, selectedAiCard);
             }
         }
     });
 
-    // 🌟 AI 일괄 저장 + 결제수단 강제 덮어쓰기 로직 🌟
+    // AI 일괄 저장 로직 (DB에 바로 꽂힘)
     async function processAIRequest(formData, forcedCard) {
         aiLoading.classList.remove('hidden'); 
         aiLoading.style.display = 'flex';
@@ -100,28 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('서버 에러');
             const result = await response.json();
             
-            if (result.success && result.data) {
-                const items = Array.isArray(result.data) ? result.data : [result.data];
-                let addedCount = 0;
-                
-                items.forEach(data => {
-                    if(data.amount && data.desc) {
-                        const newRecord = {
-                            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                            type: data.type || 'expense',
-                            date: data.date || new Date().toISOString().split('T')[0],
-                            card: forcedCard, // 💡 AI가 뭐라고 했든 무조건 내가 선택한 카드로 저장!!!
-                            amount: Number(data.amount),
-                            desc: data.desc
-                        };
-                        transactions.push(newRecord);
-                        addedCount++;
-                    }
-                });
-
-                localStorage.setItem('cat_transactions', JSON.stringify(transactions)); 
-                renderDashboard();
-                alert(`🐾 뾰로롱! [${forcedCard}] 카드로 ${addedCount}건 자동 저장됐다냥!`);
+            if (result.success) {
+                alert(`🐾 뾰로롱! [${forcedCard}] 카드로 ${result.count}건 자동 저장됐다냥!`);
+                fetchTransactions(); // DB에서 최신 데이터 다시 불러오기
             }
         } catch (error) {
             alert('먼길이가 분석하다 츄르먹고 도망갔어옹... 😿');
@@ -131,12 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 폼 수동 저장
-    document.getElementById('transactionForm').addEventListener('submit', (e) => {
+    // 수동 폼 저장 (서버 DB로 전송!)
+    document.getElementById('transactionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const type = document.querySelector('input[name="type"]:checked').value;
         const newRecord = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
             type: type,
             date: document.getElementById('dateInput').value,
             card: document.getElementById('cardInput').value,
@@ -144,25 +126,43 @@ document.addEventListener('DOMContentLoaded', () => {
             desc: document.getElementById('descInput').value
         };
 
-        transactions.push(newRecord);
-        localStorage.setItem('cat_transactions', JSON.stringify(transactions)); 
-        renderDashboard();
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRecord)
+            });
+            fetchTransactions(); // 저장 후 새로고침
+        } catch(err) {
+            alert('저장 실패했다냥!');
+        }
         
         document.getElementById('transactionModal').classList.add('hidden');
         document.getElementById('transactionForm').reset();
         document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     });
 
+    // 새로고침 버튼
     document.getElementById('refreshBtn').addEventListener('click', () => {
-        if(confirm('진짜 데이터를 싹 다 지울거냥? 🙀 (복구 불가)')) {
-            localStorage.removeItem('cat_transactions');
-            transactions = [];
-            renderDashboard();
-        }
+        fetchTransactions(); 
     });
 });
 
-// 화면 그리기 (필터링 적용)
+// DB에서 데이터 불러오기 함수
+async function fetchTransactions() {
+    try {
+        const response = await fetch(API_URL);
+        const result = await response.json();
+        if(result.success) {
+            transactions = result.data;
+            renderDashboard();
+        }
+    } catch(err) {
+        console.error("데이터 못 불러왔어냥!", err);
+    }
+}
+
+// 화면 그리기
 function renderDashboard() {
     let inTotal = 0, outTotal = 0;
     const listEl = document.getElementById('transactionList');
@@ -186,7 +186,7 @@ function renderDashboard() {
     } else {
         const cardMap = { 'check':'체크카드', 'credit':'신용카드', 'tamna':'탐나는전', 'cash':'현금', 'other':'기타' };
         
-        filteredTransactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+        filteredTransactions.forEach(t => {
             if(t.type === 'income') inTotal += t.amount; else outTotal += t.amount;
             const isInc = t.type === 'income';
             const color = isInc ? 'text-blue-500' : 'text-rose-600';
@@ -208,7 +208,8 @@ function renderDashboard() {
                     </div>
                     <div class="text-right">
                         <div class="font-black ${color} text-lg tracking-tight">${prefix}${t.amount.toLocaleString()}원</div>
-                        <button onclick="deleteTx('${t.id}')" class="text-xs text-gray-400 mt-1 px-2 py-1 hover:text-rose-500 bg-gray-50 rounded font-bold">삭제</button>
+                        <!-- MongoDB 고유 ID(_id)로 삭제 -->
+                        <button onclick="deleteTx('${t._id}')" class="text-xs text-gray-400 mt-1 px-2 py-1 hover:text-rose-500 bg-gray-50 rounded font-bold">삭제</button>
                     </div>
                 </div>
             `;
@@ -221,10 +222,14 @@ function renderDashboard() {
     document.getElementById('totalBalance').textContent = (inTotal - outTotal).toLocaleString() + '원';
 }
 
-window.deleteTx = function(id) {
+// DB에서 데이터 지우기
+window.deleteTx = async function(id) {
     if(confirm('지울거냥? 😿')) {
-        transactions = transactions.filter(t => t.id !== id);
-        localStorage.setItem('cat_transactions', JSON.stringify(transactions)); 
-        renderDashboard();
+        try {
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            fetchTransactions(); // 삭제 후 새로고침
+        } catch(err) {
+            alert('삭제 실패!');
+        }
     }
 }
