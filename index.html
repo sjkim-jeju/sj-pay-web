@@ -20,7 +20,7 @@
 </head>
 <body class="text-gray-800 antialiased h-screen flex flex-col relative bg-rose-50">
 
-    <!-- AI 로딩 화면 -->
+    <!-- AI 로딩 화면 (전체화면 덮기) -->
     <div id="aiLoading" class="hidden fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center z-[100]">
         <img src="https://i.ibb.co/VpcCQRK6/123.png" alt="Loading" class="w-24 h-24 object-contain animate-bounce mb-4 drop-shadow-xl">
         <span class="text-lg font-bold text-rose-500 bg-white px-4 py-2 rounded-full shadow-sm">영수증 읽는 중이다 냥... 🐾</span>
@@ -33,11 +33,11 @@
             <h1 class="text-xl font-bold tracking-tight">승재의 가계부</h1>
         </div>
         <button id="refreshBtn" class="p-2 bg-rose-400 rounded-full hover:bg-rose-300 transition">
-            <i class="fa-solid fa-trash-can"></i> 초기화
+            <i class="fa-solid fa-rotate-right"></i> 새로고침
         </button>
     </header>
 
-    <!-- 🌟 상단 탭 메뉴 (챕터별 보기) 🌟 -->
+    <!-- 상단 탭 메뉴 (챕터별 보기) -->
     <nav class="bg-white shadow-sm sticky top-[72px] z-10 rounded-b-2xl mx-2 mb-2">
         <ul id="tabList" class="flex overflow-x-auto no-scrollbar whitespace-nowrap p-3 text-sm font-medium">
             <li class="mr-2"><button data-tab="all" class="tab-btn px-4 py-2 rounded-full bg-rose-100 text-rose-700 font-bold transition">전체 내역</button></li>
@@ -73,11 +73,11 @@
         <section id="transactionList" class="space-y-4"></section>
     </main>
 
-    <!-- 🌟 동그라미 플러스 버튼 & 확장 메뉴 🌟 -->
+    <!-- 동그라미 플러스 버튼 & 확장 메뉴 -->
     <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end space-y-3">
         <div id="fabMenu" class="hidden flex-col items-end space-y-3 mb-2 transition-all duration-300 origin-bottom scale-0 opacity-0">
             
-            <!-- 🌟 AI 등록용 결제수단 선택 박스 🌟 -->
+            <!-- AI 등록용 결제수단 강제 지정 박스 -->
             <div class="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-rose-200">
                 <span class="text-sm font-bold text-gray-600">결제수단 픽! 👉</span>
                 <select id="aiCardSelect" class="bg-rose-50 text-rose-600 font-bold rounded-xl px-2 py-1 outline-none text-sm">
@@ -88,20 +88,20 @@
                 </select>
             </div>
 
-            <!-- 문자 분석 -->
+            <!-- 문자 분석 버튼 -->
             <button type="button" id="pasteTextBtn" class="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-rose-100 text-rose-500 hover:bg-rose-50 transition">
                 <span class="text-sm font-bold">문자 붙여넣기</span>
                 <div class="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-comment-sms"></i></div>
             </button>
 
-            <!-- 사진 분석 -->
+            <!-- 사진 분석 버튼 -->
             <label class="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-rose-100 text-rose-500 hover:bg-rose-50 transition cursor-pointer">
                 <span class="text-sm font-bold">사진 분석하기</span>
                 <div class="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-camera"></i></div>
                 <input type="file" id="receiptImage" accept="image/*" class="hidden">
             </label>
 
-            <!-- 수동 입력 -->
+            <!-- 수동 입력 버튼 -->
             <button type="button" id="manualAddBtn" class="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-rose-100 text-gray-600 hover:bg-gray-50 transition">
                 <span class="text-sm font-bold">직접 수동 입력</span>
                 <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-pen"></i></div>
@@ -109,6 +109,7 @@
             
         </div>
 
+        <!-- 메인 동그라미 버튼 -->
         <button id="mainFabBtn" class="w-14 h-14 bg-rose-500 text-white rounded-full shadow-lg hover:bg-rose-600 flex items-center justify-center text-2xl transition-transform duration-300">
             <i class="fa-solid fa-plus transition-transform duration-300" id="fabIcon"></i>
         </button>
