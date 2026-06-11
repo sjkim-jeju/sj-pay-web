@@ -5,24 +5,26 @@ let currentTab = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
-    
-    // 🌟 서버(DB)에서 내역 싹 다 불러오기! 🌟
     fetchTransactions();
 
-    // 탭 클릭 필터링
+    // 🌟 입력칸 천 단위 콤마(,) 자동 생성 로직 🌟
+    const amountInput = document.getElementById('amountInput');
+    amountInput.addEventListener('input', function(e) {
+        // 숫자 아닌 건 싹 지우고, 다시 콤마 붙여주기!
+        let value = this.value.replace(/[^0-9]/g, '');
+        this.value = value ? Number(value).toLocaleString() : '';
+    });
+
     const tabBtns = document.querySelectorAll('.tab-btn');
-    const summaryTitle = document.getElementById('summaryTitle');
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             currentTab = e.currentTarget.getAttribute('data-tab');
             tabBtns.forEach(b => b.className = "tab-btn px-4 py-2 rounded-full text-gray-500 hover:bg-rose-50 transition");
             e.currentTarget.className = "tab-btn px-4 py-2 rounded-full bg-rose-100 text-rose-700 font-bold transition";
-            summaryTitle.textContent = `${e.currentTarget.textContent} 현황 🐾`;
             renderDashboard();
         });
     });
 
-    // 플로팅 버튼 제어
     const mainFabBtn = document.getElementById('mainFabBtn');
     const fabMenu = document.getElementById('fabMenu');
     const fabIcon = document.getElementById('fabIcon');
@@ -42,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     mainFabBtn.addEventListener('click', toggleFab);
 
-    // 수동 추가 모달 열기
     document.getElementById('manualAddBtn').addEventListener('click', () => {
         toggleFab(); 
         document.getElementById('transactionModal').classList.remove('hidden');
@@ -54,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => document.getElementById('transactionModal').style.display = '', 200);
     });
 
-    // AI 기능 (사진/문자)
     const receiptImageInput = document.getElementById('receiptImage');
     const pasteTextBtn = document.getElementById('pasteTextBtn');
     const aiLoading = document.getElementById('aiLoading');
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleFab(); 
         const formData = new FormData();
         formData.append('receipt', file);
-        formData.append('card', selectedAiCard); // 선택한 카드값 서버로 전송
+        formData.append('card', selectedAiCard);
         await processAIRequest(formData, selectedAiCard);
         e.target.value = ''; 
     });
@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // AI 일괄 저장 로직 (DB에 바로 꽂힘)
     async function processAIRequest(formData, forcedCard) {
         aiLoading.classList.remove('hidden'); 
         aiLoading.style.display = 'flex';
@@ -103,8 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (result.success) {
-                alert(`🐾 뾰로롱! [${forcedCard}] 카드로 ${result.count}건 자동 저장됐다냥!`);
-                fetchTransactions(); // DB에서 최신 데이터 다시 불러오기
+                const cardName = forcedCard ? `[${forcedCard}]` : 'AI 자동';
+                alert(`🐾 뾰로롱! ${cardName}로 ${result.count}건 자동 저장됐다냥!`);
+                fetchTransactions(); 
             }
         } catch (error) {
             alert('먼길이가 분석하다 츄르먹고 도망갔어옹... 😿');
@@ -114,15 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 수동 폼 저장 (서버 DB로 전송!)
     document.getElementById('transactionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const type = document.querySelector('input[name="type"]:checked').value;
+        // 💡 콤마 빼고 순수 숫자로만 서버에 저장!
+        const rawAmount = document.getElementById('amountInput').value.replace(/,/g, ''); 
+
         const newRecord = {
             type: type,
             date: document.getElementById('dateInput').value,
             card: document.getElementById('cardInput').value,
-            amount: Number(document.getElementById('amountInput').value),
+            amount: Number(rawAmount),
             desc: document.getElementById('descInput').value
         };
 
@@ -132,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newRecord)
             });
-            fetchTransactions(); // 저장 후 새로고침
+            fetchTransactions(); 
         } catch(err) {
             alert('저장 실패했다냥!');
         }
@@ -142,13 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     });
 
-    // 새로고침 버튼
     document.getElementById('refreshBtn').addEventListener('click', () => {
         fetchTransactions(); 
     });
 });
 
-// DB에서 데이터 불러오기 함수
 async function fetchTransactions() {
     try {
         const response = await fetch(API_URL);
@@ -162,12 +162,115 @@ async function fetchTransactions() {
     }
 }
 
-// 화면 그리기
+// 🌟 대망의 신용카드 대금 납부(정산) 로직 🌟
+window.payCreditCard = async function(currentCreditDebt) {
+    if(currentCreditDebt >= 0) {
+        alert("납부할 신용카드 대금이 없습니다냥! 😻");
+        return;
+    }
+
+    const debtAmount = Math.abs(currentCreditDebt);
+    const amountStr = prompt(`💳 현재 신용카드 누적 사용액은 ${debtAmount.toLocaleString()}원입니다.\n얼마를 통장(체크)에서 빼서 납부하시겠습니까? (숫자만 입력)`, debtAmount);
+    
+    if(!amountStr) return;
+    const amountToPay = Number(amountStr.replace(/[^0-9]/g, ''));
+    
+    if(!amountToPay || amountToPay <= 0) {
+        alert("올바른 금액을 입력해주세냥!");
+        return;
+    }
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    
+    // 1. 체크카드에서 돈 빠져나감 (지출)
+    const tx1 = { type: 'expense', date: dateStr, card: 'check', amount: amountToPay, desc: '💳 신용카드 대금 납부' };
+    // 2. 신용카드에 돈 갚음 (수입 -> 빚 탕감)
+    const tx2 = { type: 'income', date: dateStr, card: 'credit', amount: amountToPay, desc: '💳 신용카드 대금 납부' };
+
+    try {
+        await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(tx1) });
+        await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(tx2) });
+        alert(`카드값 ${amountToPay.toLocaleString()}원 납부 완료! 홀가분하다냥! 🎉`);
+        fetchTransactions(); // 새로고침!
+    } catch(e) {
+        alert('납부 중 오류가 발생했어냥 😿');
+    }
+}
+
+// 🌟 화면 분할 & 동적 대시보드 렌더링 🌟
 function renderDashboard() {
-    let inTotal = 0, outTotal = 0;
     const listEl = document.getElementById('transactionList');
+    const summaryContainer = document.getElementById('summaryContainer');
+    const summaryTitle = document.getElementById('summaryTitle');
     listEl.innerHTML = '';
 
+    // 전체 자산 잔액 계산 (체크, 신용, 탐나는전, 현금)
+    let bal = { check: 0, credit: 0, tamna: 0, cash: 0 };
+    transactions.forEach(t => {
+        const amt = t.type === 'income' ? t.amount : -t.amount;
+        if(bal[t.card] !== undefined) bal[t.card] += amt;
+    });
+
+    if (currentTab === 'all') {
+        summaryTitle.textContent = '내 자산 현황 🐾';
+        // 🌟 1. 전체 탭일 때는 카드별로 분할해서 보여줌!
+        summaryContainer.innerHTML = `
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                    <div class="text-xs text-purple-600 mb-1 font-bold">💜 통장 (체크)</div>
+                    <div class="font-bold text-gray-800 text-lg">${bal.check.toLocaleString()}원</div>
+                </div>
+                <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 relative">
+                    <div class="text-xs text-rose-600 mb-1 font-bold">💖 신용카드 (사용액)</div>
+                    <div class="font-bold text-rose-600 text-lg">${bal.credit.toLocaleString()}원</div>
+                    <!-- 신용카드 정산 버튼 -->
+                    <button onclick="payCreditCard(${bal.credit})" class="absolute bottom-2 right-2 text-[10px] bg-rose-200 text-rose-700 px-2 py-1 rounded-md font-bold shadow-sm hover:bg-rose-300">대금납부</button>
+                </div>
+                <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
+                    <div class="text-xs text-orange-600 mb-1 font-bold">🍊 탐나는전</div>
+                    <div class="font-bold text-gray-800 text-lg">${bal.tamna.toLocaleString()}원</div>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                    <div class="text-xs text-emerald-600 mb-1 font-bold">💵 현금</div>
+                    <div class="font-bold text-gray-800 text-lg">${bal.cash.toLocaleString()}원</div>
+                </div>
+            </div>
+        `;
+    } else {
+        // 🌟 2. 특정 탭(체크/신용 등)일 때는 기존처럼 수입/지출/합계 보여줌!
+        const tabNames = { check: '체크카드', credit: '신용카드', tamna: '탐나는전', cash: '현금', other: '기타' };
+        summaryTitle.textContent = `${tabNames[currentTab]} 현황 🐾`;
+        
+        let tabIn = 0, tabOut = 0;
+        transactions.filter(t => t.card === currentTab).forEach(t => {
+            if(t.type === 'income') tabIn += t.amount; else tabOut += t.amount;
+        });
+
+        let extraBtn = '';
+        if(currentTab === 'credit') {
+            extraBtn = `<button onclick="payCreditCard(${bal.credit})" class="w-full mt-3 bg-rose-100 text-rose-600 py-2 rounded-xl font-bold hover:bg-rose-200 transition">💳 이번 달 대금 납부하기</button>`;
+        }
+
+        summaryContainer.innerHTML = `
+            <div class="flex flex-col space-y-3">
+                <div class="flex justify-between items-end border-b border-rose-50 pb-2">
+                    <span class="text-gray-600">들어온 돈 🐟</span>
+                    <span class="text-blue-500 font-bold text-lg">+${tabIn.toLocaleString()}원</span>
+                </div>
+                <div class="flex justify-between items-end border-b border-rose-50 pb-2">
+                    <span class="text-gray-600">나간 돈 😿</span>
+                    <span class="text-rose-500 font-bold text-lg">-${tabOut.toLocaleString()}원</span>
+                </div>
+                <div class="flex justify-between items-end pt-1">
+                    <span class="text-gray-800 font-bold">합계 잔액 😻</span>
+                    <span class="text-gray-800 font-bold text-2xl">${(tabIn - tabOut).toLocaleString()}원</span>
+                </div>
+                ${extraBtn}
+            </div>
+        `;
+    }
+
+    // 리스트 렌더링
     const filteredTransactions = transactions.filter(t => {
         if (currentTab === 'all') return true;
         return t.card === currentTab;
@@ -187,7 +290,6 @@ function renderDashboard() {
         const cardMap = { 'check':'체크카드', 'credit':'신용카드', 'tamna':'탐나는전', 'cash':'현금', 'other':'기타' };
         
         filteredTransactions.forEach(t => {
-            if(t.type === 'income') inTotal += t.amount; else outTotal += t.amount;
             const isInc = t.type === 'income';
             const color = isInc ? 'text-blue-500' : 'text-rose-600';
             const prefix = isInc ? '+' : '-';
@@ -208,7 +310,6 @@ function renderDashboard() {
                     </div>
                     <div class="text-right">
                         <div class="font-black ${color} text-lg tracking-tight">${prefix}${t.amount.toLocaleString()}원</div>
-                        <!-- MongoDB 고유 ID(_id)로 삭제 -->
                         <button onclick="deleteTx('${t._id}')" class="text-xs text-gray-400 mt-1 px-2 py-1 hover:text-rose-500 bg-gray-50 rounded font-bold">삭제</button>
                     </div>
                 </div>
@@ -216,18 +317,13 @@ function renderDashboard() {
             listEl.insertAdjacentHTML('beforeend', itemHtml);
         });
     }
-
-    document.getElementById('totalIncome').textContent = inTotal.toLocaleString() + '원';
-    document.getElementById('totalExpense').textContent = outTotal.toLocaleString() + '원';
-    document.getElementById('totalBalance').textContent = (inTotal - outTotal).toLocaleString() + '원';
 }
 
-// DB에서 데이터 지우기
 window.deleteTx = async function(id) {
     if(confirm('지울거냥? 😿')) {
         try {
             await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-            fetchTransactions(); // 삭제 후 새로고침
+            fetchTransactions(); 
         } catch(err) {
             alert('삭제 실패!');
         }
