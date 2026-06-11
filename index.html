@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>승재의 가계부 🐾</title>
-    
-    <!-- 🍎 아이폰 홈 화면 어플 아이콘 (누끼 딴 자는 고양이!) -->
-    <link rel="apple-touch-icon" href="https://www.genspark.ai/api/files/s/DgdtaOJl">
-    <!-- 🍎 앱 켤 때 나오는 로딩(스플래시) 화면 -->
-    <link rel="apple-touch-startup-image" href="https://www.genspark.ai/api/files/s/DgdtaOJl">
+    <!-- 🍎 엑박 안 뜨는 영구적인 사진으로 복구! (먼지 얼굴) -->
+    <link rel="apple-touch-icon" href="https://i.ibb.co/q3sPSCvs/1.png">
+    <link rel="apple-touch-startup-image" href="https://i.ibb.co/q3sPSCvs/1.png">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,8 +30,8 @@
 
     <header class="bg-rose-500 text-white p-4 shadow-md flex justify-between items-center z-10 sticky top-0 rounded-b-xl pt-[env(safe-area-inset-top)]">
         <div class="flex items-center space-x-2">
-            <!-- 🐱 상단 프로필 사진도 누끼 고양이로 통일! -->
-            <img src="https://www.genspark.ai/api/files/s/DgdtaOJl" alt="Profile" class="w-10 h-10 rounded-full border-2 border-rose-300 bg-black object-cover">
+            <!-- 🐱 헤더 사진도 엑박 안 뜨게 복구! -->
+            <img src="https://i.ibb.co/q3sPSCvs/1.png" alt="Profile" class="w-10 h-10 rounded-full border-2 border-rose-300 bg-white object-cover">
             <h1 class="text-xl font-bold tracking-tight">승재의 가계부</h1>
         </div>
         <button id="refreshBtn" class="p-2 bg-rose-400 rounded-full hover:bg-rose-300 transition">
@@ -63,6 +61,7 @@
 
     <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end space-y-3">
         <div id="fabMenu" class="hidden flex-col items-end space-y-3 mb-2 transition-all duration-300 origin-bottom scale-0 opacity-0">
+            
             <div class="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-rose-200">
                 <span class="text-sm font-bold text-gray-600">결제수단 픽! 👉</span>
                 <select id="aiCardSelect" class="bg-rose-50 text-rose-600 font-bold rounded-xl px-2 py-1 outline-none text-sm">
@@ -89,6 +88,7 @@
                 <span class="text-sm font-bold">직접 수동 입력</span>
                 <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-pen"></i></div>
             </button>
+            
         </div>
 
         <button id="mainFabBtn" class="w-14 h-14 bg-rose-500 text-white rounded-full shadow-lg hover:bg-rose-600 flex items-center justify-center text-2xl transition-transform duration-300">
