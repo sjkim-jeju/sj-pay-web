@@ -48,21 +48,9 @@
 
     <main class="flex-1 overflow-y-auto p-4 pb-24">
         <section class="bg-white rounded-3xl p-5 shadow-sm mb-4 border-2 border-rose-100">
-            <h2 class="text-sm text-gray-500 mb-2 font-medium" id="summaryTitle">전체 내역 현황 🐾</h2>
-            <div class="flex flex-col space-y-3">
-                <div class="flex justify-between items-end border-b border-rose-50 pb-2">
-                    <span class="text-gray-600">들어온 돈 🐟</span>
-                    <span class="text-blue-500 font-bold text-lg" id="totalIncome">0원</span>
-                </div>
-                <div class="flex justify-between items-end border-b border-rose-50 pb-2">
-                    <span class="text-gray-600">나간 돈 😿</span>
-                    <span class="text-rose-500 font-bold text-lg" id="totalExpense">0원</span>
-                </div>
-                <div class="flex justify-between items-end pt-1">
-                    <span class="text-gray-800 font-bold">합계 잔액 😻</span>
-                    <span class="text-gray-800 font-bold text-2xl" id="totalBalance">0원</span>
-                </div>
-            </div>
+            <h2 class="text-sm text-gray-500 mb-2 font-medium" id="summaryTitle">내 자산 현황 🐾</h2>
+            <!-- 💡 이 부분을 app.js에서 탭에 따라 똑똑하게 그려줄 거야! -->
+            <div id="summaryContainer"></div>
         </section>
 
         <section id="transactionList" class="space-y-4"></section>
@@ -71,7 +59,6 @@
     <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end space-y-3">
         <div id="fabMenu" class="hidden flex-col items-end space-y-3 mb-2 transition-all duration-300 origin-bottom scale-0 opacity-0">
             
-            <!-- 💡 수정된 부분: AI 자동 분류 옵션이 기본값으로 추가됨! -->
             <div class="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-rose-200">
                 <span class="text-sm font-bold text-gray-600">결제수단 픽! 👉</span>
                 <select id="aiCardSelect" class="bg-rose-50 text-rose-600 font-bold rounded-xl px-2 py-1 outline-none text-sm">
@@ -129,7 +116,8 @@
                         <option value="cash">💵 현금</option>
                         <option value="other">🎁 기타</option>
                     </select>
-                    <input type="number" id="amountInput" placeholder="얼마냥? (숫자만)" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-bold text-lg">
+                    <!-- 💡 수정: type을 text로 바꾸고 inputmode="numeric" 추가해서 콤마 허용! -->
+                    <input type="text" inputmode="numeric" id="amountInput" placeholder="얼마냥? (숫자만)" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-bold text-lg">
                     <input type="text" id="descInput" placeholder="어디다 썼냥?" required class="w-full px-4 py-3 bg-rose-50 rounded-2xl outline-none font-medium">
                     <button type="submit" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-md mt-2">저장할게옹 🐾</button>
                 </form>
