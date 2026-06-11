@@ -7,10 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     fetchTransactions();
 
-    // 🌟 입력칸 천 단위 콤마(,) 자동 생성 로직 🌟
+    // 콤마 자동 생성
     const amountInput = document.getElementById('amountInput');
     amountInput.addEventListener('input', function(e) {
-        // 숫자 아닌 건 싹 지우고, 다시 콤마 붙여주기!
         let value = this.value.replace(/[^0-9]/g, '');
         this.value = value ? Number(value).toLocaleString() : '';
     });
@@ -117,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('transactionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const type = document.querySelector('input[name="type"]:checked').value;
-        // 💡 콤마 빼고 순수 숫자로만 서버에 저장!
         const rawAmount = document.getElementById('amountInput').value.replace(/,/g, ''); 
 
         const newRecord = {
@@ -162,7 +160,7 @@ async function fetchTransactions() {
     }
 }
 
-// 🌟 대망의 신용카드 대금 납부(정산) 로직 🌟
+// 💳 신용카드 대금 납부 로직
 window.payCreditCard = async function(currentCreditDebt) {
     if(currentCreditDebt >= 0) {
         alert("납부할 신용카드 대금이 없습니다냥! 😻");
@@ -175,36 +173,58 @@ window.payCreditCard = async function(currentCreditDebt) {
     if(!amountStr) return;
     const amountToPay = Number(amountStr.replace(/[^0-9]/g, ''));
     
-    if(!amountToPay || amountToPay <= 0) {
-        alert("올바른 금액을 입력해주세냥!");
-        return;
-    }
+    if(!amountToPay || amountToPay <= 0) return alert("올바른 금액을 입력해주세냥!");
 
     const dateStr = new Date().toISOString().split('T')[0];
-    
-    // 1. 체크카드에서 돈 빠져나감 (지출)
     const tx1 = { type: 'expense', date: dateStr, card: 'check', amount: amountToPay, desc: '💳 신용카드 대금 납부' };
-    // 2. 신용카드에 돈 갚음 (수입 -> 빚 탕감)
     const tx2 = { type: 'income', date: dateStr, card: 'credit', amount: amountToPay, desc: '💳 신용카드 대금 납부' };
 
     try {
         await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(tx1) });
         await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(tx2) });
         alert(`카드값 ${amountToPay.toLocaleString()}원 납부 완료! 홀가분하다냥! 🎉`);
-        fetchTransactions(); // 새로고침!
+        fetchTransactions(); 
     } catch(e) {
         alert('납부 중 오류가 발생했어냥 😿');
     }
 }
 
-// 🌟 화면 분할 & 동적 대시보드 렌더링 🌟
+// 🏦 현금 계좌 입금 로직 (NEW!)
+window.depositCash = async function(currentCash) {
+    if(currentCash <= 0) {
+        if(!confirm("현재 수중에 현금이 0원입니다냥! 그래도 계좌 입금을 진행할까냥?")) return;
+    }
+
+    const defaultAmt = currentCash > 0 ? currentCash : 0;
+    const amountStr = prompt(`💵 현재 현금 잔액은 ${currentCash.toLocaleString()}원입니다.\n얼마를 통장(체크카드)으로 입금하시겠습니까? (숫자만 입력)`, defaultAmt);
+    
+    if(!amountStr) return;
+    const amountToDeposit = Number(amountStr.replace(/[^0-9]/g, ''));
+    
+    if(!amountToDeposit || amountToDeposit <= 0) return alert("올바른 금액을 입력해주세냥!");
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    // 1. 현금에서 돈 빠짐 (지출)
+    const tx1 = { type: 'expense', date: dateStr, card: 'cash', amount: amountToDeposit, desc: '🏦 통장(체크) 입금' };
+    // 2. 통장에 돈 들어옴 (수입)
+    const tx2 = { type: 'income', date: dateStr, card: 'check', amount: amountToDeposit, desc: '💵 현금 입금' };
+
+    try {
+        await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(tx1) });
+        await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(tx2) });
+        alert(`현금 ${amountToDeposit.toLocaleString()}원 통장 입금 완료! 든든하다냥! 🎉`);
+        fetchTransactions(); 
+    } catch(e) {
+        alert('입금 중 오류가 발생했어냥 😿');
+    }
+}
+
 function renderDashboard() {
     const listEl = document.getElementById('transactionList');
     const summaryContainer = document.getElementById('summaryContainer');
     const summaryTitle = document.getElementById('summaryTitle');
     listEl.innerHTML = '';
 
-    // 전체 자산 잔액 계산 (체크, 신용, 탐나는전, 현금)
     let bal = { check: 0, credit: 0, tamna: 0, cash: 0 };
     transactions.forEach(t => {
         const amt = t.type === 'income' ? t.amount : -t.amount;
@@ -213,7 +233,6 @@ function renderDashboard() {
 
     if (currentTab === 'all') {
         summaryTitle.textContent = '내 자산 현황 🐾';
-        // 🌟 1. 전체 탭일 때는 카드별로 분할해서 보여줌!
         summaryContainer.innerHTML = `
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
@@ -223,21 +242,21 @@ function renderDashboard() {
                 <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 relative">
                     <div class="text-xs text-rose-600 mb-1 font-bold">💖 신용카드 (사용액)</div>
                     <div class="font-bold text-rose-600 text-lg">${bal.credit.toLocaleString()}원</div>
-                    <!-- 신용카드 정산 버튼 -->
                     <button onclick="payCreditCard(${bal.credit})" class="absolute bottom-2 right-2 text-[10px] bg-rose-200 text-rose-700 px-2 py-1 rounded-md font-bold shadow-sm hover:bg-rose-300">대금납부</button>
                 </div>
                 <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
                     <div class="text-xs text-orange-600 mb-1 font-bold">🍊 탐나는전</div>
                     <div class="font-bold text-gray-800 text-lg">${bal.tamna.toLocaleString()}원</div>
                 </div>
-                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                <!-- 💡 현금 칸에 계좌입금 버튼 추가됨! -->
+                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 relative">
                     <div class="text-xs text-emerald-600 mb-1 font-bold">💵 현금</div>
                     <div class="font-bold text-gray-800 text-lg">${bal.cash.toLocaleString()}원</div>
+                    <button onclick="depositCash(${bal.cash})" class="absolute bottom-2 right-2 text-[10px] bg-emerald-200 text-emerald-700 px-2 py-1 rounded-md font-bold shadow-sm hover:bg-emerald-300">계좌입금</button>
                 </div>
             </div>
         `;
     } else {
-        // 🌟 2. 특정 탭(체크/신용 등)일 때는 기존처럼 수입/지출/합계 보여줌!
         const tabNames = { check: '체크카드', credit: '신용카드', tamna: '탐나는전', cash: '현금', other: '기타' };
         summaryTitle.textContent = `${tabNames[currentTab]} 현황 🐾`;
         
@@ -246,9 +265,12 @@ function renderDashboard() {
             if(t.type === 'income') tabIn += t.amount; else tabOut += t.amount;
         });
 
+        // 💡 신용카드 탭과 현금 탭에 각각 큰 버튼 추가!
         let extraBtn = '';
         if(currentTab === 'credit') {
             extraBtn = `<button onclick="payCreditCard(${bal.credit})" class="w-full mt-3 bg-rose-100 text-rose-600 py-2 rounded-xl font-bold hover:bg-rose-200 transition">💳 이번 달 대금 납부하기</button>`;
+        } else if(currentTab === 'cash') {
+            extraBtn = `<button onclick="depositCash(${bal.cash})" class="w-full mt-3 bg-emerald-100 text-emerald-600 py-2 rounded-xl font-bold hover:bg-emerald-200 transition">🏦 통장(체크)으로 입금하기</button>`;
         }
 
         summaryContainer.innerHTML = `
@@ -270,7 +292,6 @@ function renderDashboard() {
         `;
     }
 
-    // 리스트 렌더링
     const filteredTransactions = transactions.filter(t => {
         if (currentTab === 'all') return true;
         return t.card === currentTab;
